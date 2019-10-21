@@ -2,7 +2,7 @@
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults]]
-            [ring.middleware.json :refer [wrap-json-response]]
+            [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
             [ring.util.response :refer [response]]
             [demo04.handler-tag :as tag]))
 
@@ -12,8 +12,13 @@
 (defroutes app-routes
            (GET "/" [] "Hello World")
            (GET "/test" [] handler)
-           (GET "/tag" [] tag/handler)
+           (GET "/users" [] tag/handler)
+           (GET "/tag" [] tag/all-tag)
+           (POST "/tag" [] tag/new-tag)
+           (PUT "/tag" [] tag/update-tag)
            (route/not-found "Not Found"))
 
 (def app
-  (wrap-defaults (wrap-json-response app-routes) api-defaults))
+  (wrap-defaults (-> app-routes
+                     (wrap-json-body {:keywords? true :bigdecimals? true})
+                     wrap-json-response) api-defaults))
