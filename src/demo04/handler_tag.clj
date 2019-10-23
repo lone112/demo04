@@ -77,3 +77,17 @@
     (response "OK")
     )
   )
+
+
+(defn query [request]
+  (let [conn (mg/connect {:host "10.126.21.136"})
+        db (mg/get-db conn "demo04")
+        coll "user_profile"
+        t (get-in request [:params :t] "")
+        strs (->> (clojure.string/split t #",")
+                  (map clojure.string/trim)
+                  (filter #(< 1 (count %)))
+                  )]
+    (if (seq strs)
+      (response (mapv convert-to-map (mc/find db coll {:tags {$in strs}})))
+      (response []))))
