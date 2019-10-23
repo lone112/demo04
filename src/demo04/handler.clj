@@ -16,6 +16,7 @@
            (GET "/tag" [] tag/all-tag)
            (POST "/tag" [] tag/new-tag)
            (PUT "/tag/:id" [] tag/update-tag)
+           (POST "/users/apply" [] tag/batch-update)
            (route/not-found "Not Found"))
 
 (def app
