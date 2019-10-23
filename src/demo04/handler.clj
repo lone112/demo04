@@ -3,6 +3,7 @@
             [compojure.route :as route]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults]]
             [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
+            [ring.middleware.cors :refer [wrap-cors]]
             [ring.util.response :refer [response]]
             [demo04.handler-tag :as tag]))
 
@@ -23,4 +24,7 @@
 (def app
   (wrap-defaults (-> app-routes
                      (wrap-json-body {:keywords? true :bigdecimals? true})
-                     wrap-json-response) api-defaults))
+                     wrap-json-response
+                     (wrap-cors :access-control-allow-origin [#".*"] :access-control-allow-methods [:get]
+                                :access-control-allow-credentials "true"))
+                 api-defaults))

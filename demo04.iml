@@ -51,6 +51,7 @@
     <orderEntry type="library" name="Leiningen: org.mongodb/bson:3.3.0" level="project" />
     <orderEntry type="library" name="Leiningen: org.mongodb/mongodb-driver-core:3.3.0" level="project" />
     <orderEntry type="library" name="Leiningen: org.mongodb/mongodb-driver:3.3.0" level="project" />
+    <orderEntry type="library" name="Leiningen: ring-cors:0.1.13" level="project" />
     <orderEntry type="library" name="Leiningen: ring/ring-anti-forgery:1.3.0" level="project" />
     <orderEntry type="library" name="Leiningen: ring/ring-codec:1.1.0" level="project" />
     <orderEntry type="library" name="Leiningen: ring/ring-core:1.7.1" level="project" />
