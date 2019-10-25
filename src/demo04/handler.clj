@@ -17,6 +17,9 @@
            (GET "/tag" [] tag/all-tag)
            (POST "/tag" [] tag/new-tag)
            (PUT "/tag/:id" [] tag/update-tag)
+           (GET "/tag/group" [] tag/all-group)
+           (POST "/tag/group" [] tag/new-group)
+           (DELETE "/tag/group" [] tag/del-group)
            (POST "/users/apply" [] tag/batch-update)
            (GET "/users/query" [] tag/query)
            (route/not-found "Not Found"))
@@ -25,6 +28,6 @@
   (wrap-defaults (-> app-routes
                      (wrap-json-body {:keywords? true :bigdecimals? true})
                      wrap-json-response
-                     (wrap-cors :access-control-allow-origin [#".*"] :access-control-allow-methods [:get]
+                     (wrap-cors :access-control-allow-origin [#".*"] :access-control-allow-methods [:get :post]
                                 :access-control-allow-credentials "true"))
                  api-defaults))

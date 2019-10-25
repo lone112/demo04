@@ -1,0 +1,9 @@
+FROM clojure
+RUN mkdir -p /app
+WORKDIR /app
+COPY project.clj /app/
+RUN lein deps
+COPY . /app
+
+
+CMD ["lein", "ring", "server-headless"]
