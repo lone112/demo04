@@ -12,6 +12,7 @@
                  [com.novemberain/monger "3.1.0"]
                  [ring-cors "0.1.13"]
                  [cheshire "5.9.0"]
+                 [org.clojure/data.csv "0.1.4"]
                  [buddy/buddy-auth "2.2.0"]]
 
   :plugins [[lein-ring "0.12.5"]]
