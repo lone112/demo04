@@ -10,24 +10,30 @@
 (defn handler [request]
   (response {:foo "bar"}))
 
-(defroutes app-routes
+(def api-routes
+  (routes
+    (GET "/users" [] tag/handler)
+    (GET "/tag" [] tag/all-tag)
+    (POST "/tag" [] tag/new-tag)
+    (PUT "/tag/:id" [] tag/update-tag)
+    (GET "/tag/group" [] tag/all-group)
+    (POST "/tag/group" [] tag/new-group)
+    (DELETE "/tag/group" [] tag/del-group)
+    (POST "/users/apply" [] tag/batch-update)
+    (GET "/users/query" [] tag/query)
+    ))
+
+(defroutes ring-routes
            (GET "/" [] "Hello World")
            (GET "/test" [] handler)
-           (GET "/users" [] tag/handler)
-           (GET "/tag" [] tag/all-tag)
-           (POST "/tag" [] tag/new-tag)
-           (PUT "/tag/:id" [] tag/update-tag)
-           (GET "/tag/group" [] tag/all-group)
-           (POST "/tag/group" [] tag/new-group)
-           (DELETE "/tag/group" [] tag/del-group)
-           (POST "/users/apply" [] tag/batch-update)
-           (GET "/users/query" [] tag/query)
+           (context "/api" [] api-routes)
            (route/not-found "Not Found"))
 
 (def app
-  (wrap-defaults (-> app-routes
+  (wrap-defaults (-> ring-routes
                      (wrap-json-body {:keywords? true :bigdecimals? true})
                      wrap-json-response
-                     (wrap-cors :access-control-allow-origin [#".*"] :access-control-allow-methods [:get :post]
+                     (wrap-cors :access-control-allow-origin [#".*"]
+                                :access-control-allow-methods [:get :post]
                                 :access-control-allow-credentials "true"))
-                 api-defaults))
+                 site-defaults))
