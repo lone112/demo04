@@ -11,7 +11,9 @@
                  [ring/ring-json "0.5.0"]
                  [com.novemberain/monger "3.1.0"]
                  [ring-cors "0.1.13"]
-                 [cheshire "5.9.0"]]
+                 [cheshire "5.9.0"]
+                 [buddy/buddy-auth "2.2.0"]]
+
   :plugins [[lein-ring "0.12.5"]]
   :ring {:handler demo04.handler/app}
   :profiles

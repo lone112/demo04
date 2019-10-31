@@ -5,10 +5,62 @@
             [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
             [ring.middleware.cors :refer [wrap-cors]]
             [ring.util.response :refer [response]]
-            [demo04.handler-tag :as tag]))
+            [demo04.handler-tag :as tag]
+            [ring.util.response :refer [response redirect content-type]]
+            [ring.adapter.jetty :as jetty]
+            [clj-time.core :as time]
+            [buddy.sign.jwt :as jwt]
+
+            [buddy.auth.backends.token :refer [jws-backend]]
+            [buddy.auth :refer [authenticated? throw-unauthorized]]
+            [buddy.auth.backends.httpbasic :refer [http-basic-backend]]
+            [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]])
+  (:gen-class))
 
 (defn handler [request]
-  (response {:foo "bar"}))
+  (if (authenticated? request)
+    (response "Hello")
+    (response "401")))
+
+(defn ok [d] {:status 200 :body d})
+(defn bad-request [d] {:status 400 :body d})
+
+(def secret "mysupersecret")
+
+;; Global var that stores valid users with their
+;; respective passwords.
+
+(def authdata {:admin "secret"
+               :test  "secret"})
+
+;; Create an instance of auth backend.
+(def auth-backend (jws-backend {:secret secret :options {:alg :hs512}}))
+
+;; Authenticate Handler
+;; Responds to post requests in same url as login and is responsible for
+;; identifying the incoming credentials and setting the appropriate authenticated
+;; user into session. `authdata` will be used as source of valid users.
+
+(defn login
+  [request]
+  (let [username (get-in request [:body :username])
+        password (get-in request [:body :password])
+        valid? (some-> authdata
+                       (get (keyword username))
+                       (= password))]
+    (if valid?
+      (let [claims {:user (keyword username)
+                    :exp  (time/plus (time/now) (time/seconds 3600))}
+            token (jwt/sign claims secret {:alg :hs512})]
+        (ok {:token token}))
+      (bad-request {:message "wrong auth data"}))))
+
+(defn wrap-require-auth [handler]
+  (fn [req]
+    (if (authenticated? req)
+      (handler req)
+      {:status 401})
+    ))
 
 (def api-routes
   (routes
@@ -26,14 +78,20 @@
 (defroutes ring-routes
            (GET "/" [] "Hello World")
            (GET "/test" [] handler)
-           (context "/api" [] api-routes)
+           (POST "/login" [] login)
+           (wrap-routes (context "/api" [] api-routes) wrap-require-auth)
            (route/not-found "Not Found"))
 
 (def app
-  (wrap-defaults (-> ring-routes
-                     (wrap-json-body {:keywords? true :bigdecimals? true})
-                     wrap-json-response
-                     (wrap-cors :access-control-allow-origin [#".*"]
-                                :access-control-allow-methods [:get :post]
-                                :access-control-allow-credentials "true"))
-                 site-defaults))
+  (-> ring-routes
+      (wrap-authorization auth-backend)
+      (wrap-authentication auth-backend)
+      (wrap-json-response {:pretty false})
+      (wrap-json-body {:keywords? true :bigdecimals? true})
+      ))
+
+
+
+(defn -main
+  [& args]
+  (jetty/run-jetty app {:port 3000}))
