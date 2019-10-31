@@ -92,7 +92,9 @@
       (wrap-authentication auth-backend)
       (wrap-json-response {:pretty false})
       (wrap-json-body {:keywords? true :bigdecimals? true})
-      ))
+      (wrap-cors :access-control-allow-origin [#".*"] :access-control-allow-methods [:get :post]
+                 :access-control-allow-credentials "true"))
+      )
 
 
 
