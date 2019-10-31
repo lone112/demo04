@@ -32,10 +32,10 @@
 
 
 
-(defn normalize-by-keys [m kys [k1 ks]]
+(defn normalize-by-keys [m kys [k1 ks] & rmkys]
   (let [vls (vals (select-keys m kys))
         its (seq (remove nil? vls))
-        omit (fn [it] (apply dissoc it kys))]
+        omit (fn [it] (apply dissoc it rmkys))]
     (if its
       (-> (assoc m k1 (first its) ks (next its))
           omit
@@ -44,12 +44,13 @@
 
 (defn normalize-user [m]
   (-> m
-      (normalize-by-keys [:email :email2] [:email :emails])
-      (normalize-by-keys [:phone :phone2] [:phone :phones])
-      (normalize-by-keys [:device1 :device2] [:device :devices])))
+      (normalize-by-keys [:email :email2] [:email :emails] :email2)
+      (normalize-by-keys [:phone :phone2] [:phone :phones] :phone2)
+      (normalize-by-keys [:addr :addr2] [:addr :addrs] :addr2)
+      (normalize-by-keys [:device1 :device2] [:device :devices] :device1 :device2)))
 
 (defn export-user [users]
-  (with-open [writer (io/writer "D:/demo04/oln_users1.csv")]
+  (with-open [writer (io/writer "D:/demo04/oln_users.json")]
     (doseq [it users] (generate-stream it writer))
     ))
 
@@ -58,6 +59,8 @@
     (->> (csv/read-csv reader)
          convert-to-map
          (filter #(< 3 (count (:id %))))
+         (map omit-empty-or-nil)
+         (map normalize-user)
          (map omit-empty-or-nil)
          export-user
          )
