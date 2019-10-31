@@ -2,6 +2,8 @@
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults]]
+            [ring.middleware.keyword-params :refer [wrap-keyword-params]]
+            [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
             [ring.middleware.cors :refer [wrap-cors]]
             [ring.util.response :refer [response]]
@@ -84,6 +86,8 @@
 
 (def app
   (-> ring-routes
+      (wrap-keyword-params)
+      (wrap-params)
       (wrap-authorization auth-backend)
       (wrap-authentication auth-backend)
       (wrap-json-response {:pretty false})
