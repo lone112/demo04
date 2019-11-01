@@ -54,19 +54,25 @@
       (let [claims {:user (keyword username)
                     :exp  (time/plus (time/now) (time/seconds 3600))}
             token (jwt/sign claims secret {:alg :hs512})]
-        (ok {:token token}))
-      (bad-request {:message "wrong auth data"}))))
+        (ok {:token       token
+             :id          "ac0001"
+             :displayName "Admin"}))
+      {:message "wrong auth data"
+       :status  401})))
 
 (defn wrap-require-auth [handler]
   (fn [req]
-    (if (authenticated? req)
+    (if (or (System/getenv "DEBUG") (authenticated? req))
       (handler req)
       {:status 401})
     ))
 
 (def api-routes
   (routes
-    (GET "/users" [] tag/handler)
+    (GET "/customer/list" [] tag/user-list)
+    (GET "/customer/maininfo" [] tag/user-info)
+    (GET "/customer/scoreinfo" [] tag/user-list)
+    (GET "/customer/preference/id/:id" [] tag/user-list)
     (GET "/tag" [] tag/all-tag)
     (POST "/tag" [] tag/new-tag)
     (PUT "/tag/:id" [] tag/update-tag)
@@ -80,7 +86,7 @@
 (defroutes ring-routes
            (GET "/" [] "Hello World")
            (GET "/test" [] handler)
-           (POST "/login" [] login)
+           (POST "/api/account/signin" [] login)
            (wrap-routes (context "/api" [] api-routes) wrap-require-auth)
            (route/not-found "Not Found"))
 
@@ -94,7 +100,7 @@
       (wrap-json-body {:keywords? true :bigdecimals? true})
       (wrap-cors :access-control-allow-origin [#".*"] :access-control-allow-methods [:get :post]
                  :access-control-allow-credentials "true"))
-      )
+  )
 
 
 
