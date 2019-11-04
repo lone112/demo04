@@ -73,6 +73,7 @@
     (GET "/customer/maininfo" [] tag/user-info)
     (GET "/customer/scoreinfo" [] tag/user-list)
     (GET "/customer/preference/id/:id" [] tag/user-list)
+    (GET "/customer/activity" [] tag/user-activity)
     (GET "/tag" [] tag/all-tag)
     (POST "/tag" [] tag/new-tag)
     (PUT "/tag/:id" [] tag/update-tag)

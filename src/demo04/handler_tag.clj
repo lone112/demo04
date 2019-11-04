@@ -1,13 +1,16 @@
 (ns demo04.handler-tag
-  (:refer-clojure :exclude [sort find])
-  (:require [monger.core :as mg]
+  (:refer-clojure :exclude [sort find any?])
+  (:require monger.joda-time
+            [clj-time.core :as t]
+            [monger.core :as mg]
             [monger.collection :as mc]
             [monger.query :refer :all]
-            [monger.operators :refer [$each $addToSet $pull $in $all $or $regex]]
+            [monger.operators :refer [$each $addToSet $pull $in $all $or $regex $gte $lt $lte]]
             [monger.conversion :refer [to-db-object from-db-object]]
             [monger.credentials :as mcred]
             [ring.util.response :refer [response bad-request]]
-            [demo04.utils :refer [parse-int getenv]])
+            [demo04.utils :refer [parse-int getenv drop-time]]
+            [clj-time.core :as t])
   (:import (com.mongodb DuplicateKeyException)
            (org.bson.types ObjectId)))
 
@@ -21,6 +24,11 @@
 ;(def ^:private conn (mg/connect {:host MONGO_HOST}))
 (def ^:private conn (mg/connect-with-credentials MONGO_HOST (mcred/create MONGO_USER DB_NAME MONGO_PWD)))
 
+(defn map-object-id-string [m]
+  (into {} (for [[k v] m]
+             (cond (= :_id k) [:id (.toString v)]
+                   (instance? ObjectId v) [k (.toString v)]
+                   :else [k v]))))
 
 (defn- convert-to-map [obj]
   (let [m (from-db-object obj true)]
@@ -186,3 +194,49 @@
     (if-let [id (try-parse-oid id_str)]
       (response (rename-user-profile (convert-to-map (mc/find-map-by-id db coll id fds))))
       (response {}))))
+
+
+(defn- distinct-activity-date [uid, c]
+  (let [match-stage {"$match" {:uid uid}}
+        project-stage {"$project" {:year       "$date"
+                                   :month      "$date"
+                                   :dayOfMonth "$date"}}
+        group-stage {"$group" {:_id {:year       "$year"
+                                     :month      "$month"
+                                     :dayOfMonth "$dayOfMonth"}}}
+        sort-stage {"$sort" {
+                             "_id.year"       -1
+                             "_id.month"      -1
+                             "_id.dayOfMonth" -1}}
+        limit-stage {"$limit" c}]
+    (mc/aggregate (mg/get-db conn DB_NAME) "activities"
+                  [match-stage
+                   project-stage
+                   group-stage
+                   sort-stage
+                   limit-stage
+                   ] :cursor {:batch-size 0})))
+
+(defn query-activity [uid start-dt end-dt type]
+  (let [db (mg/get-db conn DB_NAME)
+        coll "activities"
+
+        q (if type
+            {:date         {$gte (drop-time start-dt)
+                            $lte (t/plus (drop-time end-dt) (t/days 1))}
+             :uid          uid
+             :activityType type}
+
+            {:date {$gte (drop-time start-dt)
+                    $lte (t/plus (drop-time end-dt) (t/days 1))}
+             :uid  uid})]
+    (map map-object-id-string (mc/find-maps db coll q [:date :activityType :content] ))))
+
+(defn user-activity [request]
+  (let [id_str (get-in request [:params :id])
+        typ (get-in request [:params :filter])
+        st (get-in request [:params :startdate] (t/now))]
+    (if-let [uid (try-parse-oid id_str)]
+      (response {:id      id_str
+                 :details (query-activity uid (get-in (last (distinct-activity-date uid 10)) [:_id :year]) st typ)})
+      )))

@@ -17,6 +17,7 @@
                  [org.clojure/java.jdbc "0.7.10"]
                  ;; https://mvnrepository.com/artifact/mysql/mysql-connector-java
                  [mysql/mysql-connector-java "8.0.16"]
+                 [clj-time "0.13.0"]
                  ]
 
   :plugins [[lein-ring "0.12.5"]]
