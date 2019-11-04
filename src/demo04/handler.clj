@@ -71,7 +71,7 @@
   (routes
     (GET "/customer/list" [] tag/user-list)
     (GET "/customer/maininfo" [] tag/user-info)
-    (GET "/customer/scoreinfo" [] tag/user-list)
+    (GET "/customer/scoreinfo" [] tag/user-score)
     (GET "/customer/preference/id/:id" [] tag/user-list)
     (GET "/customer/activity" [] tag/user-activity)
     (GET "/tag" [] tag/all-tag)

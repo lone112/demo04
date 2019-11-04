@@ -230,7 +230,7 @@
             {:date {$gte (drop-time start-dt)
                     $lte (t/plus (drop-time end-dt) (t/days 1))}
              :uid  uid})]
-    (map map-object-id-string (mc/find-maps db coll q [:date :activityType :content] ))))
+    (map map-object-id-string (mc/find-maps db coll q [:date :activityType :content]))))
 
 (defn user-activity [request]
   (let [id_str (get-in request [:params :id])
@@ -240,3 +240,17 @@
       (response {:id      id_str
                  :details (query-activity uid (get-in (last (distinct-activity-date uid 10)) [:_id :year]) st typ)})
       )))
+
+
+(defn user-score [request]
+  (let [id_str (get-in request [:params :id])
+        coll "user_profile"
+        db (mg/get-db conn DB_NAME)]
+    (if-let [uid (try-parse-oid id_str)]
+      (if-let [amer_id (:amer_id (mc/find-map-by-id db coll uid [:amer_id]))]
+        (-> (mc/find-map-by-id db "user_scores" amer_id)
+            (clojure.set/rename-keys {:_id :id})
+            (assoc :id id_str)
+            (response)
+            )
+        ))))
