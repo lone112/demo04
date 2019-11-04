@@ -13,7 +13,11 @@
                  [ring-cors "0.1.13"]
                  [cheshire "5.9.0"]
                  [org.clojure/data.csv "0.1.4"]
-                 [buddy/buddy-auth "2.2.0"]]
+                 [buddy/buddy-auth "2.2.0"]
+                 [org.clojure/java.jdbc "0.7.10"]
+                 ;; https://mvnrepository.com/artifact/mysql/mysql-connector-java
+                 [mysql/mysql-connector-java "8.0.16"]
+                 ]
 
   :plugins [[lein-ring "0.12.5"]]
   :ring {:handler demo04.handler/app}

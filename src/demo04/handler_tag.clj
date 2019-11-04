@@ -5,6 +5,7 @@
             [monger.query :refer :all]
             [monger.operators :refer [$each $addToSet $pull $in $all $or $regex]]
             [monger.conversion :refer [to-db-object from-db-object]]
+            [monger.credentials :as mcred]
             [ring.util.response :refer [response bad-request]]
             [demo04.utils :refer [parse-int getenv]])
   (:import (com.mongodb DuplicateKeyException)
@@ -14,8 +15,12 @@
 
 (def MONGO_HOST (getenv "MONGO_HOST" "10.126.21.136"))
 (def DB_NAME (getenv "MONGO_DB" "demo04"))
+(def MONGO_USER (getenv "MONGO_USER" "reader"))
+(def MONGO_PWD (getenv "MONGO_PWD" "!!123abc"))
 
-(def ^:private conn (mg/connect {:host MONGO_HOST}))
+;(def ^:private conn (mg/connect {:host MONGO_HOST}))
+(def ^:private conn (mg/connect-with-credentials MONGO_HOST (mcred/create MONGO_USER DB_NAME MONGO_PWD)))
+
 
 (defn- convert-to-map [obj]
   (let [m (from-db-object obj true)]
