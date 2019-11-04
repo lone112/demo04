@@ -254,3 +254,13 @@
             (response)
             )
         ))))
+
+(defn user-prefer [request]
+  (let [id_str (get-in request [:params :id])
+        coll "user_prefer"
+        db (mg/get-db conn DB_NAME)]
+    (if-let [id (try-parse-oid id_str)]
+      (-> (mc/find-map-by-id db coll id)
+          (assoc :id id_str)
+          (dissoc :_id)
+          response))))
