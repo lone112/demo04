@@ -1,5 +1,6 @@
 (ns demo04.handler
-  (:require [compojure.core :refer :all]
+  (:require [clojure.tools.logging :as log]
+            [compojure.core :refer :all]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults api-defaults]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
@@ -12,6 +13,7 @@
             [ring.adapter.jetty :as jetty]
             [clj-time.core :as time]
             [buddy.sign.jwt :as jwt]
+
 
             [buddy.auth.backends.token :refer [jws-backend]]
             [buddy.auth :refer [authenticated? throw-unauthorized]]
@@ -82,6 +84,7 @@
     (DELETE "/tag/group" [] tag/del-group)
     (POST "/users/apply" [] tag/batch-update)
     (GET "/users/query" [] tag/query)
+    (GET "/account/userprofile" [] tag/user-profile)
     ))
 
 (defroutes ring-routes
@@ -107,4 +110,5 @@
 
 (defn -main
   [& args]
+  (log/info "app start")
   (jetty/run-jetty app {:port 3000}))

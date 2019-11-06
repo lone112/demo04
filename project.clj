@@ -9,16 +9,20 @@
                  [ring/ring-jetty-adapter "1.7.1"]
                  [ring/ring-devel "1.7.1"]
                  [ring/ring-json "0.5.0"]
-                 [com.novemberain/monger "3.1.0"]
+                 [com.novemberain/monger "3.5.0"]
                  [ring-cors "0.1.13"]
                  [cheshire "5.9.0"]
                  [org.clojure/data.csv "0.1.4"]
                  [buddy/buddy-auth "2.2.0"]
                  [clj-time "0.13.0"]
+                 ;; https://mvnrepository.com/artifact/org.mongodb/mongodb-driver
+                 [org.mongodb/mongodb-driver "3.11.1"]
+                 [org.clojure/tools.logging "0.5.0"]
                  ]
 
   :plugins [[lein-ring "0.12.5"]]
   :ring {:handler demo04.handler/app}
+  :main demo04.handler
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-mock "0.3.2"]]}})
