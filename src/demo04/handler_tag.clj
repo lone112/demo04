@@ -63,7 +63,7 @@
         ]
     (->> (with-collection db coll
                           (find s)
-                          (fields [:name :phone :email :sex :birthday])
+                          (fields [:name :phone :email :sex :city :orderCount :amount :addr])
                           (paginate :page p-idx :per-page p-size))
          (map convert-to-map)
          (map rename-user-profile)
@@ -143,7 +143,7 @@
 (defn- try-parse-oid [s]
   (try
     (ObjectId. s)
-    (catch Exception e
+    (catch Exception _
       nil
       )))
 
