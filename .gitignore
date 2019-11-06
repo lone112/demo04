@@ -10,3 +10,10 @@ pom.xml.asc
 /.nrepl-port
 /.idea/
 /demo04.iml
+.lein-deps-sum
+.lein-repl-history
+.lein-plugins/
+.lein-failures
+.nrepl-port
+.cpcache/
+_gsdata_/

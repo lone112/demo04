@@ -14,14 +14,13 @@
             [clj-time.core :as time]
             [buddy.sign.jwt :as jwt]
 
-
             [buddy.auth.backends.token :refer [jws-backend]]
             [buddy.auth :refer [authenticated? throw-unauthorized]]
             [buddy.auth.backends.httpbasic :refer [http-basic-backend]]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]])
   (:gen-class))
 
-(defn handler [request]
+(defn test-handler [request]
   (if (authenticated? request)
     (response "Hello")
     (response "401")))
@@ -66,30 +65,27 @@
   (fn [req]
     (if (or (System/getenv "DEBUG") (authenticated? req))
       (handler req)
-      {:status 401})
-    ))
+      {:status 401})))
 
 (def api-routes
-  (routes
-    (GET "/customer/list" [] tag/user-list)
-    (GET "/customer/maininfo" [] tag/user-info)
-    (GET "/customer/scoreinfo" [] tag/user-score)
-    (GET "/customer/preferenceinfo" [] tag/user-prefer)
-    (GET "/customer/activity" [] tag/user-activity)
-    (GET "/tag" [] tag/all-tag)
-    (POST "/tag" [] tag/new-tag)
-    (PUT "/tag/:id" [] tag/update-tag)
-    (GET "/tag/group" [] tag/all-group)
-    (POST "/tag/group" [] tag/new-group)
-    (DELETE "/tag/group" [] tag/del-group)
-    (POST "/users/apply" [] tag/batch-update)
-    (GET "/users/query" [] tag/query)
-    (GET "/account/userprofile" [] tag/user-profile)
-    ))
+  (routes (GET "/customer/list" [] tag/user-list)
+          (GET "/customer/maininfo" [] tag/user-info)
+          (GET "/customer/scoreinfo" [] tag/user-score)
+          (GET "/customer/preferenceinfo" [] tag/user-prefer)
+          (GET "/customer/activity" [] tag/user-activity)
+          (GET "/tag" [] tag/all-tag)
+          (POST "/tag" [] tag/new-tag)
+          (PUT "/tag/:id" [] tag/update-tag)
+          (GET "/tag/group" [] tag/all-group)
+          (POST "/tag/group" [] tag/new-group)
+          (DELETE "/tag/group" [] tag/del-group)
+          (POST "/users/apply" [] tag/batch-update)
+          (GET "/users/query" [] tag/query)
+          (GET "/account/userprofile" [] tag/user-profile)))
 
 (defroutes ring-routes
            (GET "/" [] "Hello World")
-           (GET "/test" [] handler)
+           (GET "/test" [] test-handler)
            (POST "/api/account/signin" [] login)
            (wrap-routes (context "/api" [] api-routes) wrap-require-auth)
            (route/not-found "Not Found"))
@@ -103,10 +99,7 @@
       (wrap-json-response {:pretty false})
       (wrap-json-body {:keywords? true :bigdecimals? true})
       (wrap-cors :access-control-allow-origin [#".*"] :access-control-allow-methods [:get :post]
-                 :access-control-allow-credentials "true"))
-  )
-
-
+                 :access-control-allow-credentials "true")))
 
 (defn -main
   [& args]

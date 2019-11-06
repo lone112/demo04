@@ -1,6 +1,8 @@
 (ns demo04.handler-tag
   (:refer-clojure :exclude [sort find any?])
-  (:require monger.joda-time
+  (:require clojure.set
+            clojure.string
+            monger.joda-time
             [clj-time.core :as t]
             [monger.core :as mg]
             [monger.collection :as mc]
@@ -14,61 +16,50 @@
   (:import (com.mongodb DuplicateKeyException)
            (org.bson.types ObjectId)))
 
-
-
-
 (def DB_NAME (getenv "MONGO_DB" "demo04"))
 
 (defn init-conn []
   (let [host (getenv "MONGO_HOST" "10.126.21.136")
         user (getenv "MONGO_USER" "reader")
         pwd (getenv "MONGO_PWD" "!!123abc")
-        uri (getenv "MONGO_URI")
-        ]
+        uri (getenv "MONGO_URI")]
     (if uri
       (:conn (mg/connect-via-uri uri))
-      (mg/connect-with-credentials host (mcred/create user DB_NAME pwd))
-      )))
+      (mg/connect-with-credentials host (mcred/create user DB_NAME pwd)))))
 
 (def ^:private conn (delay (init-conn)))
 
 (defn- map-object-id-string [m]
   (into {} (for [[k v] m]
-             (cond (= :_id k) [:id (.toString v)]
-                   (instance? ObjectId v) [k (.toString v)]
+             (cond (= :_id k) [:id (str v)]
+                   (instance? ObjectId v) [k (str v)]
                    :else [k v]))))
 
 (defn- rename-user-profile [m]
   (clojure.set/rename-keys m {:name :displayName :addr :address}))
 
 (defn- page-response [p-size total p-idx items]
-  (response {
-             :pageSize          p-size
+  (response {:pageSize          p-size
              :pageCount         (quot (+ p-size total) p-size)
              :totalCount        total
              :currentPageNumber p-idx
-             :customerList      items
-             }))
-
+             :customerList      items}))
 
 (defn user-search [p-idx s-word]
   (let [db (mg/get-db @conn DB_NAME)
         coll "user_profile"
         p-size 20
-        s (if s-word {$or [
-                           {:name {$regex s-word}}
+        s (if s-word {$or [{:name {$regex s-word}}
                            {:phone {$regex s-word}}
                            {:email {$regex s-word}}]} {})
-        total (mc/count db coll s)
-        ]
+        total (mc/count db coll s)]
     (->> (with-collection db coll
                           (find s)
                           (fields [:name :phone :email :sex :city :orderCount :amount :addr])
                           (paginate :page p-idx :per-page p-size))
          (map map-object-id-string)
          (map rename-user-profile)
-         (page-response p-size total p-idx)
-         )))
+         (page-response p-size total p-idx))))
 
 (defn user-list [request]
   (user-search (parse-int (get-in request [:params :pageNumber]) 0)
@@ -80,15 +71,12 @@
     (try
       (response (map-object-id-string (mc/insert-and-return db coll {:name (get-in request [:body :name])})))
       (catch DuplicateKeyException e
-        (bad-request (.getMessage e))
-        ))
-    ))
+        (bad-request (.getMessage e))))))
 
 (defn all-tag [request]
   (let [db (mg/get-db @conn DB_NAME)
         coll "tags"]
-    (response (map map-object-id-string (mc/find db coll)))
-    ))
+    (response (map map-object-id-string (mc/find db coll)))))
 
 (defn update-tag [request]
   (let [db (mg/get-db @conn DB_NAME)
@@ -100,10 +88,7 @@
       (mc/update-by-id db coll (ObjectId. id) {:name name})
       (response "OK")
       (catch DuplicateKeyException e
-        (bad-request (.getMessage e))
-        ))))
-
-
+        (bad-request (.getMessage e))))))
 
 (defn batch-update [request]
   (let [db (mg/get-db @conn DB_NAME)
@@ -112,18 +97,13 @@
       (if (seq tags)
         (mc/update-by-id db coll (ObjectId. id) {$addToSet {:tags {$each tags}}}))
       (if (seq del)
-        (mc/update-by-id db coll (ObjectId. id) {$pull {:tags {$in del}}}))
-      )
+        (mc/update-by-id db coll (ObjectId. id) {$pull {:tags {$in del}}})))
     (response "OK")))
-
-
 
 (defn all-group [request]
   (let [db (mg/get-db @conn DB_NAME)
         coll "groups"]
-    (response (map map-object-id-string (mc/find db coll)))
-    ))
-
+    (response (map map-object-id-string (mc/find db coll)))))
 
 (defn new-group [request]
   (let [db (mg/get-db @conn DB_NAME)
@@ -132,17 +112,13 @@
       (response (map-object-id-string (mc/insert-and-return db coll {:name (get-in request [:body :name])
                                                                      :tags (get-in request [:body :items])})))
       (catch DuplicateKeyException e
-        (bad-request (.getMessage e))
-        ))
-    ))
+        (bad-request (.getMessage e))))))
 
 (defn- try-parse-oid [s]
   (try
     (ObjectId. s)
     (catch Exception _
-      nil
-      )))
-
+      nil)))
 
 (defn del-group [request]
   (let [db (mg/get-db @conn DB_NAME)
@@ -150,19 +126,16 @@
     (if-let [oid (try-parse-oid (get-in request [:params :id]))]
       (response {:status "OK"
                  :msg    (.toString (mc/remove-by-id db coll oid))})
-      (response {:status "OK"}))
-    ))
+      (response {:status "OK"}))))
 
 (defn- split-string [s]
   (->> (clojure.string/split s #",")
        (map clojure.string/trim)
-       (filter #(< 1 (count %)))
-       ))
+       (filter #(< 1 (count %)))))
 
 (defn- get-group-tags [id]
   (if-let [oid (try-parse-oid id)]
-    (-> (mc/find-map-by-id (mg/get-db @conn DB_NAME) "groups" oid)
-        (:tags))))
+    (:tags (mc/find-map-by-id (mg/get-db @conn DB_NAME) "groups" oid))))
 
 (defn- tag-vec [request]
   (let [m (:params request)]
@@ -176,9 +149,7 @@
     (if-let [ids (tag-vec request)]
       (response {:count (mc/count db coll {:tags {$all (vec ids)}})
                  :items (->>
-                          (with-collection db coll
-                                           (find {:tags {$all (vec ids)}})
-                                           (limit 50))
+                          (with-collection db coll (find {:tags {$all (vec ids)}}) (limit 50))
                           (map map-object-id-string))})
       (response []))))
 
@@ -191,7 +162,6 @@
       (response (rename-user-profile (map-object-id-string (mc/find-map-by-id db coll id fds))))
       (response {}))))
 
-
 (defn- distinct-activity-date [uid, c]
   (let [match-stage {"$match" {:uid uid}}
         project-stage {"$project" {:year       "$date"
@@ -200,8 +170,7 @@
         group-stage {"$group" {:_id {:year       "$year"
                                      :month      "$month"
                                      :dayOfMonth "$dayOfMonth"}}}
-        sort-stage {"$sort" {
-                             "_id.year"       -1
+        sort-stage {"$sort" {"_id.year"       -1
                              "_id.month"      -1
                              "_id.dayOfMonth" -1}}
         limit-stage {"$limit" c}]
@@ -210,8 +179,7 @@
                    project-stage
                    group-stage
                    sort-stage
-                   limit-stage
-                   ] :cursor {:batch-size 0})))
+                   limit-stage] :cursor {:batch-size 0})))
 
 (defn query-activity [uid start-dt end-dt type]
   (let [db (mg/get-db @conn DB_NAME)
@@ -234,9 +202,7 @@
         st (get-in request [:params :startdate] (t/now))]
     (if-let [uid (try-parse-oid id_str)]
       (response {:id      id_str
-                 :details (query-activity uid (get-in (last (distinct-activity-date uid 10)) [:_id :year]) st typ)})
-      )))
-
+                 :details (query-activity uid (get-in (last (distinct-activity-date uid 10)) [:_id :year]) st typ)}))))
 
 (defn user-score [request]
   (let [id_str (get-in request [:params :id])
@@ -247,9 +213,7 @@
         (-> (mc/find-map-by-id db "user_scores" amer_id)
             (clojure.set/rename-keys {:_id :id})
             (assoc :id id_str)
-            (response)
-            )
-        ))))
+            (response))))))
 
 (defn user-prefer [request]
   (let [id_str (get-in request [:params :id])

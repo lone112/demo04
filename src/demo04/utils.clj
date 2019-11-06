@@ -7,8 +7,7 @@
   (try (Integer/parseInt number-string)
        (catch Exception _ (first vls))))
 
-(defn getenv [name & vals]
-  "Get system env or default val"
+(defn getenv "Get system env or default val" [name & vals]
   (if-let [v (System/getenv name)]
     v
     (first vals)))
