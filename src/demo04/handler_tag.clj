@@ -159,7 +159,7 @@
         id_str (get-in request [:params :id])
         fds [:name :phone :email :sex :birthday :tags :addr]]
     (if-let [id (try-parse-oid id_str)]
-      (response (rename-user-profile (map-object-id-string (mc/find-map-by-id db coll id fds))))
+      (response (assoc (rename-user-profile (map-object-id-string (mc/find-map-by-id db coll id fds))) :tags ["金牌会员" "高消费" "参与双十一" "活跃用户"]))
       (response {}))))
 
 (defn- distinct-activity-date [uid, c]
