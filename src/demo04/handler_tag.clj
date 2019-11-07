@@ -22,7 +22,8 @@
   (let [host (getenv "MONGO_HOST" "10.126.21.136")
         user (getenv "MONGO_USER" "reader")
         pwd (getenv "MONGO_PWD" "!!123abc")
-        uri (getenv "MONGO_URI")]
+        uri (getenv "MONGO_URI")
+        uri (if (= \" (first uri)) (subs uri 1 (- (count uri) 2)) uri)]
     (if uri
       (:conn (mg/connect-via-uri uri))
       (mg/connect-with-credentials host (mcred/create user DB_NAME pwd)))))
