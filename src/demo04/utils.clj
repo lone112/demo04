@@ -28,3 +28,9 @@
 (defn encrypt-string [s]
   "string -> aes -> base64")
 (defn decrypt-string [b64-s])
+
+(defn same-date? [a b]
+  (if (and a b)
+    (and (= (t/day a) (t/day b))
+         (= (t/month a) (t/month b))
+         (= (t/year a) (t/year b)))))

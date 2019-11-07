@@ -46,7 +46,7 @@
                        :displayName "Hello"
                        :sex         "F"
                        :birthday    "2009-12-12"
-                       :tags        [100001 100002]
+                       :tags        ["金牌会员" "高消费" "参与双十一" "活跃用户"]
                        :phone       "13964578901"
                        :email       "hello@world.com"
                        :address     "china shanghai"}
@@ -54,5 +54,4 @@
         (:body (resp)) => (contains (json/generate-string fake-user))
         (provided (monger.collection/find-map-by-id anything anything anything anything) => fake-user,
                   (monger.core/get-db anything anything) => nil
-                  (demo04.handler-tag/init-conn) => nil :times any?
-                  )))
+                  (demo04.handler-tag/init-conn) => nil :times any?)))

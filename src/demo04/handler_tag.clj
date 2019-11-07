@@ -11,7 +11,7 @@
             [monger.conversion :refer [to-db-object from-db-object]]
             [monger.credentials :as mcred]
             [ring.util.response :refer [response bad-request]]
-            [demo04.utils :refer [parse-int getenv drop-time]]
+            [demo04.utils :refer [parse-int getenv drop-time same-date?]]
             [clj-time.core :as t])
   (:import (com.mongodb DuplicateKeyException)
            (org.bson.types ObjectId)))
@@ -162,47 +162,25 @@
       (response (assoc (rename-user-profile (map-object-id-string (mc/find-map-by-id db coll id fds))) :tags ["金牌会员" "高消费" "参与双十一" "活跃用户"]))
       (response {}))))
 
-(defn- distinct-activity-date [uid, c]
-  (let [match-stage {"$match" {:uid uid}}
-        project-stage {"$project" {:year       "$date"
-                                   :month      "$date"
-                                   :dayOfMonth "$date"}}
-        group-stage {"$group" {:_id {:year       "$year"
-                                     :month      "$month"
-                                     :dayOfMonth "$dayOfMonth"}}}
-        sort-stage {"$sort" {"_id.year"       -1
-                             "_id.month"      -1
-                             "_id.dayOfMonth" -1}}
-        limit-stage {"$limit" c}]
-    (mc/aggregate (mg/get-db @conn DB_NAME) "activities"
-                  [match-stage
-                   project-stage
-                   group-stage
-                   sort-stage
-                   limit-stage] :cursor {:batch-size 0})))
-
-(defn query-activity [uid start-dt end-dt type]
-  (let [db (mg/get-db @conn DB_NAME)
-        coll "activities"
-
-        q (if type
-            {:date         {$gte (drop-time start-dt)
-                            $lte (t/plus (drop-time end-dt) (t/days 1))}
-             :uid          uid
-             :activityType type}
-
-            {:date {$gte (drop-time start-dt)
-                    $lte (t/plus (drop-time end-dt) (t/days 1))}
-             :uid  uid})]
-    (map map-object-id-string (mc/find-maps db coll q [:date :activityType :content]))))
+(defn query-activity [uid start type]
+  (let [q {:uid uid :date {$lte start}}
+        q1 (if type (assoc q :activityType type) q)]
+    (with-collection (mg/get-db @conn DB_NAME) "activities"
+                     (find q1)
+                     (fields [:date :activityType :content])
+                     (sort {:date -1}))))
 
 (defn user-activity [request]
   (let [id_str (get-in request [:params :id])
         typ (get-in request [:params :filter])
         st (get-in request [:params :startdate] (t/now))]
     (if-let [uid (try-parse-oid id_str)]
-      (response {:id      id_str
-                 :details (query-activity uid (get-in (last (distinct-activity-date uid 10)) [:_id :year]) st typ)}))))
+      (loop [[el & colls] (query-activity uid (drop-time st) typ) items [] c 10]
+        (if (and el (pos? c))
+          (if (same-date? (:date el) (:date (last items)))
+            (recur colls (conj items el) c)
+            (recur colls (conj items el) (dec c)))
+          (response {:id id_str :details (map map-object-id-string items)}))))))
 
 (defn user-score [request]
   (let [id_str (get-in request [:params :id])
