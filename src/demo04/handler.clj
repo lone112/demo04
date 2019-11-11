@@ -83,12 +83,13 @@
           (GET "/users/query" [] tag/query)
           (GET "/account/userprofile" [] tag/user-profile)))
 
-(defroutes ring-routes
-           (GET "/" [] "Hello World")
-           (GET "/test" [] test-handler)
-           (POST "/api/account/signin" [] login)
-           (wrap-routes (context "/api" [] api-routes) wrap-require-auth)
-           (route/not-found "Not Found"))
+(defroutes
+  ring-routes
+  (GET "/" [] "Hello World")
+  (GET "/test" [] test-handler)
+  (POST "/api/account/signin" [] login)
+  (wrap-routes (context "/api" [] api-routes) wrap-require-auth)
+  (route/not-found "Not Found"))
 
 (def app
   (-> ring-routes

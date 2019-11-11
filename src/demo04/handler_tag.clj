@@ -49,21 +49,22 @@
 (defn user-search [p-idx s-word]
   (let [db (mg/get-db @conn DB_NAME)
         coll "user_profile"
-        p-size 20
+        p-size 10
         s (if s-word {$or [{:name {$regex s-word}}
                            {:phone {$regex s-word}}
                            {:email {$regex s-word}}]} {})
         total (mc/count db coll s)]
-    (->> (with-collection db coll
-                          (find s)
-                          (fields [:name :phone :email :sex :city :orderCount :amount :addr])
-                          (paginate :page p-idx :per-page p-size))
+    (->> (with-collection
+           db coll
+           (find s)
+           (fields [:name :phone :email :sex :city :orderCount :amount :addr])
+           (paginate :page p-idx :per-page p-size))
          (map map-object-id-string)
          (map rename-user-profile)
          (page-response p-size total p-idx))))
 
 (defn user-list [request]
-  (user-search (parse-int (get-in request [:params :pageNumber]) 0)
+  (user-search (parse-int (get-in request [:params :pagenumber]) 0)
                (get-in request [:params :search])))
 
 (defn new-tag [request]
@@ -149,9 +150,8 @@
         coll "user_profile"]
     (if-let [ids (tag-vec request)]
       (response {:count (mc/count db coll {:tags {$all (vec ids)}})
-                 :items (->>
-                          (with-collection db coll (find {:tags {$all (vec ids)}}) (limit 50))
-                          (map map-object-id-string))})
+                 :items (->> (with-collection db coll (find {:tags {$all (vec ids)}}) (limit 50))
+                             (map map-object-id-string))})
       (response []))))
 
 (defn user-info [request]
@@ -166,10 +166,12 @@
 (defn query-activity [uid start type]
   (let [q {:uid uid :date {$lte start}}
         q1 (if type (assoc q :activityType type) q)]
-    (with-collection (mg/get-db @conn DB_NAME) "activities"
-                     (find q1)
-                     (fields [:date :activityType :content])
-                     (sort {:date -1}))))
+    (with-collection
+      (mg/get-db @conn DB_NAME)
+      "activities"
+      (find q1)
+      (fields [:date :activityType :content])
+      (sort {:date -1}))))
 
 (defn user-activity [request]
   (let [id_str (get-in request [:params :id])
