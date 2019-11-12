@@ -53,5 +53,4 @@
             resp (fn [] (auth-request :get (str "/api/customer/maininfo?id=" (str uid))))]
         (:body (resp)) => (contains (json/generate-string fake-user))
         (provided (monger.collection/find-map-by-id anything anything anything anything) => fake-user
-                  (monger.core/get-db anything anything) => nil
                   (demo04.handler-tag/init-conn) => nil :times any?)))

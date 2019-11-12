@@ -18,6 +18,7 @@
                  [clj-time "0.13.0"]
                  ;; https://mvnrepository.com/artifact/org.mongodb/mongodb-driver
                  [org.mongodb/mongodb-driver "3.11.1"]
+                 [semantic-csv "0.2.1-alpha1"]
                  ]
 
   :plugins [[lein-ring "0.12.5"]]

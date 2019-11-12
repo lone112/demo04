@@ -81,6 +81,7 @@
           (DELETE "/tag/group" [] tag/del-group)
           (POST "/users/apply" [] tag/batch-update)
           (GET "/users/query" [] tag/query)
+          (GET "/options" [] tag/cities)
           (GET "/account/userprofile" [] tag/user-profile)))
 
 (defroutes
