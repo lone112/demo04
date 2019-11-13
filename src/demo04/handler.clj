@@ -73,22 +73,26 @@
           (GET "/customer/scoreinfo" [] tag/user-score)
           (GET "/customer/preferenceinfo" [] tag/user-prefer)
           (GET "/customer/activity" [] tag/user-activity)
-          (GET "/tag" [] tag/all-tag)
+          (GET "/profiles/tags" [] tag/all-tag)
           (POST "/tag" [] tag/new-tag)
           (PUT "/tag/:id" [] tag/update-tag)
-          (GET "/tag/group" [] tag/all-group)
-          (POST "/tag/group" [] tag/new-group)
-          (DELETE "/tag/group" [] tag/del-group)
+          (GET "/profiles/groups" [] tag/all-group)
+          (GET "/profiles/groups/:id" [] tag/all-group)
+          (POST "/profiles/groups" [] tag/new-group)
+          (DELETE "/profiles/groups" [] tag/del-group)
           (POST "/users/apply" [] tag/batch-update)
           (GET "/users/query" [] tag/query)
+          (POST "/profiles/groups/count" [] tag/handel-group-count)
+          (GET "/options" [] tag/cities)
           (GET "/account/userprofile" [] tag/user-profile)))
 
-(defroutes ring-routes
-           (GET "/" [] "Hello World")
-           (GET "/test" [] test-handler)
-           (POST "/api/account/signin" [] login)
-           (wrap-routes (context "/api" [] api-routes) wrap-require-auth)
-           (route/not-found "Not Found"))
+(defroutes
+  ring-routes
+  (GET "/" [] "Hello World")
+  (GET "/test" [] test-handler)
+  (POST "/api/account/signin" [] login)
+  (wrap-routes (context "/api" [] api-routes) wrap-require-auth)
+  (route/not-found "Not Found"))
 
 (def app
   (-> ring-routes
