@@ -10,7 +10,7 @@
             [monger.core :as mg]
             [monger.collection :as mc]
             [monger.query :refer :all]
-            [monger.operators :refer [$each $addToSet $pull $in $all $or $regex $gte $lt $lte] :as op]
+            [monger.operators :refer [$each $addToSet $pull $in $all $or $regex $gte $lt $lte $in] :as op]
             [monger.conversion :refer [to-db-object from-db-object]]
             [monger.credentials :as mcred]
             [ring.util.response :refer [response bad-request]]
@@ -231,18 +231,35 @@
 (defn- tags-for-group []
   (mc/find-maps @db "tags" {:system 1}))
 
-(defn group-user-count [request]
+(defn convert-to-match [it]
+  (cond
+    (= 1 (count it)) {op/$match {:tags (first it)}}
+    (coll? it) {:tags {op/$in it}}
+    :else {op/$match {:tags it}}
+    ))
+
+(defn filter-tags [attr tags]
+  (map (fn [{:keys [_id name]}]
+         [(str _id) name]) (filter #(= attr (:category %)) tags)))
+
+(defn mongo-matchs [m all-tags]
+  (let [data-age (filter-tags "age" all-tags)
+        data-avg (filter-tags "avg" all-tags)
+        data-total (filter-tags "total" all-tags)]
+    (->> (group-to-tags m :data-age data-age :data-avg data-avg :data-total data-total)
+         (mapv convert-to-match))))
+
+(defn query-group-count [m]
+  (let [all-tags (tags-for-group)
+        matchs (mongo-matchs m all-tags)]
+    (prn matchs)
+    (mc/aggregate @db "user_profile" (conj matchs {op/$count "count"}))))
+
+(defn handel-group-count [request]
   (let [m (:body request)
         errors (check-data m)]
     (if (seq? errors)
       (response {:status 400
                  :errMsg errors})
-      (let [all-tags (tags-for-group)
-            data-age (filter #(= "age" (:category %)) all-tags)
-            data-avg (filter #(= "avg" (:category %)) all-tags)
-            data-total (filter #(= "total" (:category %)) all-tags)
-            ]
-        (group-to-tags m data-age data-avg data-total)
-        )
-      )
-    ))
+      (response (query-group-count m))
+      )))
