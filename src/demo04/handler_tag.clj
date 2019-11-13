@@ -30,12 +30,10 @@
       (:conn (mg/connect-via-uri uri))
       (mg/connect-with-credentials host (mcred/create user DB_NAME pwd)))))
 
-(defonce ^:private conn (init-conn))
-
 (defn get-database [name]
-  (mg/get-db conn name))
+  (mg/get-db (init-conn) name))
 
-(defonce ^:private db (get-database DB_NAME))
+(defonce ^:private db (delay (get-database DB_NAME)))
 
 (defn- map-object-id-string [m]
   (into {} (for [[k v] m]
@@ -59,9 +57,9 @@
         s (if s-word {$or [{:name {$regex s-word}}
                            {:phone {$regex s-word}}
                            {:email {$regex s-word}}]} {})
-        total (mc/count db coll s)]
+        total (mc/count @db coll s)]
     (->> (with-collection
-           db coll
+           @db coll
            (find s)
            (fields [:name :phone :email :sex :city :orderCount :amount :addr])
            (paginate :page p-idx :per-page p-size))
@@ -76,13 +74,14 @@
 (defn new-tag [request]
   (let [coll "tags"]
     (try
-      (response (map-object-id-string (mc/insert-and-return db coll {:name (get-in request [:body :name])})))
+      (response (map-object-id-string (mc/insert-and-return @db coll {:name (get-in request [:body :name])})))
       (catch DuplicateKeyException e
         (bad-request (.getMessage e))))))
 
 (defn all-tag [request]
-  (let [coll "tags"]
-    (response (map map-object-id-string (mc/find db coll)))))
+  (response (mc/aggregate @db "tags" [{op/$project {:_id  0
+                                                   :id   "$_id"
+                                                   :name 1}}])))
 
 (defn update-tag [request]
   (let [coll "tags"
@@ -90,7 +89,7 @@
         name (get-in request [:body :name])]
 
     (try
-      (mc/update-by-id db coll (ObjectId. id) {:name name})
+      (mc/update-by-id @db coll (ObjectId. id) {:name name})
       (response "OK")
       (catch DuplicateKeyException e
         (bad-request (.getMessage e))))))
@@ -99,20 +98,20 @@
   (let [coll "user_profile"]
     (doseq [{:keys [id tags del]} (:body request)]
       (if (seq tags)
-        (mc/update-by-id db coll (ObjectId. id) {$addToSet {:tags {$each tags}}}))
+        (mc/update-by-id @db coll (ObjectId. id) {$addToSet {:tags {$each tags}}}))
       (if (seq del)
-        (mc/update-by-id db coll (ObjectId. id) {$pull {:tags {$in del}}})))
+        (mc/update-by-id @db coll (ObjectId. id) {$pull {:tags {$in del}}})))
     (response "OK")))
 
 (defn all-group [request]
   (let [coll "groups"]
-    (response (map map-object-id-string (mc/find db coll)))))
+    (response (map map-object-id-string (mc/find @db coll)))))
 
 (defn new-group [request]
-  (let [coll "groups"]
+  (let [coll "groups"
+        m (:body request)]
     (try
-      (response (map-object-id-string (mc/insert-and-return db coll {:name (get-in request [:body :name])
-                                                                     :tags (get-in request [:body :items])})))
+      (response m)
       (catch DuplicateKeyException e
         (bad-request (.getMessage e))))))
 
@@ -126,7 +125,7 @@
   (let [coll "groups"]
     (if-let [oid (try-parse-oid (get-in request [:params :id]))]
       (response {:status "OK"
-                 :msg    (.toString (mc/remove-by-id db coll oid))})
+                 :msg    (.toString (mc/remove-by-id @db coll oid))})
       (response {:status "OK"}))))
 
 (defn- split-string [s]
@@ -136,7 +135,7 @@
 
 (defn- get-group-tags [id]
   (if-let [oid (try-parse-oid id)]
-    (:tags (mc/find-map-by-id db "groups" oid))))
+    (:tags (mc/find-map-by-id @db "groups" oid))))
 
 (defn- tag-vec [request]
   (let [m (:params request)]
@@ -147,8 +146,8 @@
 (defn query [request]
   (let [coll "user_profile"]
     (if-let [ids (tag-vec request)]
-      (response {:count (mc/count db coll {:tags {$all (vec ids)}})
-                 :items (->> (with-collection db coll (find {:tags {$all (vec ids)}}) (limit 50))
+      (response {:count (mc/count @db coll {:tags {$all (vec ids)}})
+                 :items (->> (with-collection @db coll (find {:tags {$all (vec ids)}}) (limit 50))
                              (map map-object-id-string))})
       (response []))))
 
@@ -157,14 +156,14 @@
         id_str (get-in request [:params :id])
         fds [:name :phone :email :sex :birthday :tags :addr]]
     (if-let [id (try-parse-oid id_str)]
-      (response (assoc (rename-user-profile (map-object-id-string (mc/find-map-by-id db coll id fds))) :tags ["金牌会员" "高消费" "参与双十一" "活跃用户"]))
+      (response (assoc (rename-user-profile (map-object-id-string (mc/find-map-by-id @db coll id fds))) :tags ["金牌会员" "高消费" "参与双十一" "活跃用户"]))
       (response {}))))
 
 (defn query-activity [uid start type]
   (let [q {:uid uid :date {$lte start}}
         q1 (if type (assoc q :activityType type) q)]
     (with-collection
-      db
+      @db
       "activities"
       (find q1)
       (fields [:date :activityType :content])
@@ -186,8 +185,8 @@
   (let [id_str (get-in request [:params :id])
         coll "user_profile"]
     (if-let [uid (try-parse-oid id_str)]
-      (if-let [amer_id (:amer_id (mc/find-map-by-id db coll uid [:amer_id]))]
-        (-> (mc/find-map-by-id db "user_scores" amer_id)
+      (if-let [amer_id (:amer_id (mc/find-map-by-id @db coll uid [:amer_id]))]
+        (-> (mc/find-map-by-id @db "user_scores" amer_id)
             (clojure.set/rename-keys {:_id :id})
             (assoc :id id_str)
             (response))))))
@@ -196,7 +195,7 @@
   (let [id_str (get-in request [:params :id])
         coll "user_prefer"]
     (if-let [id (try-parse-oid id_str)]
-      (-> (mc/find-map-by-id db coll id)
+      (-> (mc/find-map-by-id @db coll id)
           (assoc :id id_str)
           (dissoc :_id)
           response))))
@@ -208,7 +207,7 @@
 
 (defn cities [request]
   (let [coll "cities"]
-    (response {:districts (mc/aggregate db "cities" [{op/$project {"cities.areas"        0
+    (response {:districts (mc/aggregate @db "cities" [{op/$project {"cities.areas"        0
                                                                    "cities.code"         0
                                                                    "cities.provinceCode" 0
                                                                    :code                 0}}
@@ -216,9 +215,9 @@
                                                                    :id       "$_id"
                                                                    :province "$name"
                                                                    :cities   1}}])
-               :brands    (mc/aggregate db "brands" [{op/$project {:name "$brand"
+               :brands    (mc/aggregate @db "brands" [{op/$project {:name "$brand"
                                                                    :_id  0
                                                                    :id   "$_id"}}])
-               :products  (mc/aggregate db "products" [{op/$project {:name 1
+               :products  (mc/aggregate @db "products" [{op/$project {:name 1
                                                                      :_id  0
                                                                      :id   "$_id"}}])})))

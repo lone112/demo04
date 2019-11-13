@@ -1,0 +1,25 @@
+{
+  "name":"string",
+  "desc":"string",
+  "basicInfo":{
+    "sex": null,
+    "age":[23, null],
+    "districts": [{"name":"string","id":"string"} ]
+  },
+  "behavior": {
+    "type": "PURCHARSE/VISIT/...",
+    "brands":[{"name":"string","id":"string"}],
+    "products":[{"name":"string","id":"string"}],
+    "range":null
+  },
+  "prefer": {
+    "brands":[{"name":"string","id":"string"}],
+    "products":[{"name":"string","id":"string"}]
+  },
+  "spend": {
+    "avg": [100, null],
+    "total": [0, 500]
+  },
+  "tags": [{"name":"String","id":"string"}],
+  "updated": 0
+}
