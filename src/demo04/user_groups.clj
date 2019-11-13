@@ -52,3 +52,34 @@
 (defn check-data [m]
   (let [v (compose-sets p basic behavior prefer spend)]
     (v m)))
+
+
+(defn parse-number-array [arr]
+  (let [nums (filter number? arr)
+        strs (mapv str (sort nums))
+        strs (if (not= (count arr) (count strs)) (conj strs "+") strs)]
+    (map (partial clojure.string/join "-") (partition 2 strs))))
+
+(defn numbers-to-tags [arr items]
+  (let [strs (parse-number-array arr)]
+    (map first (filter (fn [[t n]]
+                         (some (partial clojure.string/includes? n) strs)) items))))
+
+(defn- sex-to-tag [s]
+  (cond
+    (= s "F") "5dcbbada19cd444abd6a2c7b"
+    (= s "M") "5dcbbada19cd444abd6a2c7c"))
+
+(defn- items-tags [items]
+  (map :id items))
+
+
+(defn group-to-tags [m & {:keys [data-age data-avg data-total]}]
+  (let [sex (sex-to-tag (get-in m [:basicInfo :sex]))
+        ages (numbers-to-tags (get-in m [:basicInfo :age]) data-age)
+        districts (items-tags (get-in m [:basicInfo :districts]))
+        prefer-brands (items-tags (get-in m [:prefer :brands]))
+        prefer-products (items-tags (get-in m [:prefer :products]))
+        spend-avg (numbers-to-tags (get-in m [:spend :avg]) data-avg)
+        spend-total (numbers-to-tags (get-in m [:spend :total]) data-total)]
+    (remove nil? (remove empty? [sex ages districts prefer-brands prefer-products spend-avg spend-total (:tags m)]))))

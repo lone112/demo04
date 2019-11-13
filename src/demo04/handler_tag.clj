@@ -1,5 +1,6 @@
 (ns demo04.handler-tag
   (:refer-clojure :exclude [sort find any?])
+  (:use [demo04.user-groups :only (check-data group-to-tags)])
   (:require clojure.set
             clojure.string
             monger.joda-time
@@ -79,9 +80,10 @@
         (bad-request (.getMessage e))))))
 
 (defn all-tag [request]
-  (response (mc/aggregate @db "tags" [{op/$project {:_id  0
-                                                   :id   "$_id"
-                                                   :name 1}}])))
+  (response (mc/aggregate @db "tags" [{op/$match {:system 0}}
+                                      {op/$project {:_id  0
+                                                    :id   "$_id"
+                                                    :name 1}}])))
 
 (defn update-tag [request]
   (let [coll "tags"
@@ -109,9 +111,12 @@
 
 (defn new-group [request]
   (let [coll "groups"
-        m (:body request)]
+        m (:body request)
+        error (check-data m)]
     (try
-      (response m)
+      (if (seq? error)
+        (response {:errMsg error})
+        (response (clojure.set/rename-keys (mc/insert-and-return @db coll m) {:_id :id})))
       (catch DuplicateKeyException e
         (bad-request (.getMessage e))))))
 
@@ -208,16 +213,36 @@
 (defn cities [request]
   (let [coll "cities"]
     (response {:districts (mc/aggregate @db "cities" [{op/$project {"cities.areas"        0
-                                                                   "cities.code"         0
-                                                                   "cities.provinceCode" 0
-                                                                   :code                 0}}
-                                                     {op/$project {:_id      0
-                                                                   :id       "$_id"
-                                                                   :province "$name"
-                                                                   :cities   1}}])
+                                                                    "cities.code"         0
+                                                                    "cities.provinceCode" 0
+                                                                    :code                 0}}
+                                                      {op/$project {:_id      0
+                                                                    :id       "$_id"
+                                                                    :province "$name"
+                                                                    :cities   1}}])
                :brands    (mc/aggregate @db "brands" [{op/$project {:name "$brand"
-                                                                   :_id  0
-                                                                   :id   "$_id"}}])
+                                                                    :_id  0
+                                                                    :id   "$_id"}}])
                :products  (mc/aggregate @db "products" [{op/$project {:name 1
-                                                                     :_id  0
-                                                                     :id   "$_id"}}])})))
+                                                                      :_id  0
+                                                                      :id   "$_id"}}])})))
+
+
+(defn- tags-for-group []
+  (mc/find-maps @db "tags" {:system 1}))
+
+(defn group-user-count [request]
+  (let [m (:body request)
+        errors (check-data m)]
+    (if (seq? errors)
+      (response {:status 400
+                 :errMsg errors})
+      (let [all-tags (tags-for-group)
+            data-age (filter #(= "age" (:category %)) all-tags)
+            data-avg (filter #(= "avg" (:category %)) all-tags)
+            data-total (filter #(= "total" (:category %)) all-tags)
+            ]
+        (group-to-tags m data-age data-avg data-total)
+        )
+      )
+    ))

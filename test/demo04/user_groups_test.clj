@@ -31,8 +31,8 @@
              (validate-group-data (assoc json-data :updated 1)) => (just {})
              (validate-group-data (assoc json-data :updated 7)) => (just {})
              (validate-group-data (assoc json-data :updated 30)) => (just {}))
-      (fact "Update value invalid"
-            (validate-group-data (assoc json-data :updated 10)) => (contains {:updated set?}))
+       (fact "Update value invalid"
+             (validate-group-data (assoc json-data :updated 10)) => (contains {:updated set?}))
 
        (fact "Update is null or empty or not exists"
              (validate-group-data (dissoc json-data :updated)) => (just {})
@@ -150,3 +150,26 @@
              (validate-group-data (assoc-in json-data [:spend :avg] [0])) => (contains {[:spend :avg] set?}))
 
        )
+
+
+(facts "Group to tags"
+       (fact "Empty group test"
+             (group-to-tags {:name "hello"}) => (just ()))
+
+       (fact "Group with sex property"
+             (group-to-tags {:name "hello" :basicInfo {:sex "F"}}) => (just '("5dcbbada19cd444abd6a2c7b"))
+             (group-to-tags {:name "hello" :basicInfo {:sex "M"}}) => (just '("5dcbbada19cd444abd6a2c7c")))
+
+       (fact "Group with age data"
+             (let [data-age [["5dcbbada19cd444abd6a2c7d" "age0-17"]
+                             ["5dcbbada19cd444abd6a2c7e" "age18-23"]
+                             ["5dcbbada19cd444abd6a2c7f" "age24-+"]]]
+               (group-to-tags {:name "hello" :basicInfo {:age [0 17]}} :data-age data-age) => (just '(("5dcbbada19cd444abd6a2c7d")))
+               (group-to-tags {:name "hello" :basicInfo {:age [18 23]}} :data-age data-age) => (just '(("5dcbbada19cd444abd6a2c7e")))
+               (group-to-tags {:name "hello" :basicInfo {:age [18 23 24 nil]}} :data-age data-age) => (just '(("5dcbbada19cd444abd6a2c7e" "5dcbbada19cd444abd6a2c7f"))))
+             )
+
+       (fact "Group with tags"
+             (group-to-tags {:name "hello" :tags ["a" "b"]}) => (just '(("a" "b"))))
+       )
+
