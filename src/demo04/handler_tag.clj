@@ -246,8 +246,7 @@
   (let [data-age (filter-tags "age" all-tags)
         data-avg (filter-tags "avg" all-tags)
         data-total (filter-tags "total" all-tags)]
-    (->> (group-to-tags m :data-age data-age :data-avg data-avg :data-total data-total)
-         (mapv convert-to-match))))
+    (mapv convert-to-match (group-to-tags m :data-age data-age :data-avg data-avg :data-total data-total))))
 
 (defn query-group-count [m]
   (let [all-tags (tags-for-group)

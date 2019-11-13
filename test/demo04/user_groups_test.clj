@@ -36,9 +36,7 @@
 
        (fact "Update is null or empty or not exists"
              (validate-group-data (dissoc json-data :updated)) => (just {})
-             (validate-group-data (assoc json-data :updated nil)) => (just {}))
-       )
-
+             (validate-group-data (assoc json-data :updated nil)) => (just {})))
 
 (facts "Basic info validation"
        (fact "Basic info not exists"
@@ -76,8 +74,8 @@
                (validate-group-data data) => (just {})))
        (fact "age array invalid length"
              (let [data (assoc-in json-data [:basicInfo :age] [21])]
-               (validate-group-data data) => (contains {[:basicInfo :age] set?})))
-       )
+               (validate-group-data data) => (contains {[:basicInfo :age] set?}))))
+
 (facts "Behavior validation"
        (fact "Behavior not exists"
              (let [data (dissoc json-data :behavior)]
@@ -117,15 +115,12 @@
 
        (fact "Behavior range invalid value"
              (let [data json-data]
-               (validate-group-data (assoc-in data [:behavior :range] "71D")) => (contains {[:behavior :range] set?})))
-       )
-
+               (validate-group-data (assoc-in data [:behavior :range] "71D")) => (contains {[:behavior :range] set?}))))
 
 (facts "Prefer validation"
        (fact "Prefer not exists"
              (let [data (dissoc json-data :prefer)]
                (validate-group-data data) => (just {})))
-
 
        (fact "Prefer brand is null or not exists or empty"
              (validate-group-data (update-in json-data [:prefer] dissoc :brands)) => (just {})
@@ -138,8 +133,7 @@
              (validate-group-data (assoc-in json-data [:prefer :products] [])) => (just {}))
 
        (fact "Prefer products invalid data (without id)"
-             (validate-group-data (assoc-in json-data [:prefer :products] [{:name "hello"}])) => (contains {[:prefer :products] set?}))
-       )
+             (validate-group-data (assoc-in json-data [:prefer :products] [{:name "hello"}])) => (contains {[:prefer :products] set?})))
 
 (facts "Spend ability validation"
        (fact "avg not exists or null or empty"
@@ -147,10 +141,7 @@
              (validate-group-data (assoc-in json-data [:spend :avg] nil)) => (just {})
              (validate-group-data (assoc-in json-data [:spend :avg] [])) => (just {}))
        (fact "Spend avg invalid data (without id)"
-             (validate-group-data (assoc-in json-data [:spend :avg] [0])) => (contains {[:spend :avg] set?}))
-
-       )
-
+             (validate-group-data (assoc-in json-data [:spend :avg] [0])) => (contains {[:spend :avg] set?})))
 
 (facts "Group to tags"
        (fact "Empty group test"
@@ -166,10 +157,8 @@
                              ["5dcbbada19cd444abd6a2c7f" "age24-+"]]]
                (group-to-tags {:name "hello" :basicInfo {:age [0 17]}} :data-age data-age) => (just '(("5dcbbada19cd444abd6a2c7d")))
                (group-to-tags {:name "hello" :basicInfo {:age [18 23]}} :data-age data-age) => (just '(("5dcbbada19cd444abd6a2c7e")))
-               (group-to-tags {:name "hello" :basicInfo {:age [18 23 24 nil]}} :data-age data-age) => (just '(("5dcbbada19cd444abd6a2c7e" "5dcbbada19cd444abd6a2c7f"))))
-             )
+               (group-to-tags {:name "hello" :basicInfo {:age [18 23 24 nil]}} :data-age data-age) => (just '(("5dcbbada19cd444abd6a2c7e" "5dcbbada19cd444abd6a2c7f")))))
 
        (fact "Group with tags"
-             (group-to-tags {:name "hello" :tags ["a" "b"]}) => (just '(("a" "b"))))
-       )
+             (group-to-tags {:name "hello" :tags ["a" "b"]}) => (just '(("a" "b")))))
 

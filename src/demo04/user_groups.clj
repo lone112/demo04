@@ -1,6 +1,7 @@
 (ns demo04.user-groups
   (:require [validateur.validation :refer :all]
-            [cheshire.core :as json]))
+            [cheshire.core :as json]
+            clojure.string))
 
 
 (defn every-items-has-id [items]
@@ -53,7 +54,6 @@
   (let [v (compose-sets p basic behavior prefer spend)]
     (v m)))
 
-
 (defn parse-number-array [arr]
   (let [nums (filter number? arr)
         strs (mapv str (sort nums))
@@ -72,7 +72,6 @@
 
 (defn- items-tags [items]
   (map :id items))
-
 
 (defn group-to-tags [m & {:keys [data-age data-avg data-total]}]
   (let [sex (sex-to-tag (get-in m [:basicInfo :sex]))
