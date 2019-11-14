@@ -234,7 +234,7 @@
 (defn convert-to-match [it]
   (cond
     (= 1 (count it)) {op/$match {:tags (first it)}}
-    (coll? it) {:tags {op/$in it}}
+    (coll? it) {op/$match {:tags {"$all" it}}}
     :else {op/$match {:tags it}}
     ))
 
