@@ -1,0 +1,18 @@
+{
+  "_id" : "5dc3bd7d8a79e629f026f6e5",
+  "amer_id" : "5E01EAD9-7CD8-E611-80CA-0017FA00865C",
+  "sex" : "10",
+  "city" : "上海市",
+  "phone" : "18714728736",
+  "email" : "_@hotmail.com",
+  "orderCount" : 3,
+  "amount" : 4638.0,
+  "birthday" : "1977-01-30T16:00:00.000+0000",
+  "tags" : [
+    "5db119d8be9cfa37b0cfedcb",
+    "5db1192dbe9cfa37b0cfedca",
+    "5dcbbada19cd444abd6a2c7d"
+  ],
+  "name" : "覃金鑫 ",
+  "addr" : "新江湾城街道国安路789弄15号502室"
+}
