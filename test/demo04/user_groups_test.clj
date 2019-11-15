@@ -162,3 +162,56 @@
        (fact "Group with tags"
              (group-to-tags {:name "hello" :tags ["a" "b"]}) => (just '(("a" "b")))))
 
+(def tags-sex {"F" "5dcbbada19cd444abd6a2c7b"
+               "M" "5dcbbada19cd444abd6a2c7c"})
+
+(def tags-age {"age1" "0-17"
+               "age2" "18-30"
+               "age3" "31-40"
+               "age4" "41-+"})
+
+(def tags-avg {"avg1" "0-500"
+               "avg2" "500-1000"
+               "avg3" "1000-2000"
+               "avg4" "2000-+"})
+
+(def tags-total {"tal1" "0-500"
+                 "tal2" "500-1000"
+                 "tal3" "1000-2000"
+                 "tal4" "2000-+"})
+
+(defn group-tag-map-with-data [m]
+  (group-tag-tiny m tags-age tags-avg tags-total))
+
+(facts "Group tag map tests"
+       (fact "sex F / M"
+             (group-tag-map-with-data {:basicInfo {:sex "F"}}) => {:sex "5dcbbada19cd444abd6a2c7b"}
+             (group-tag-map-with-data {:basicInfo {:sex "M"}}) => {:sex "5dcbbada19cd444abd6a2c7c"})
+
+       (fact "age 0 17 18 30 31 40 +"
+             (group-tag-map-with-data {:basicInfo {:age [0 17]}}) => {:ages ["age1"]}
+             (group-tag-map-with-data {:basicInfo {:age [18 30 31 40]}}) => {:ages ["age2" "age3"]}
+             (group-tag-map-with-data {:basicInfo {:age [41 nil]}}) => {:ages ["age4"]})
+
+       (fact "spend avg 0 500 1000 2000 +"
+             (group-tag-map-with-data {:spend {:avg [0 500]}}) => {:spend-avg ["avg1"]}
+             (group-tag-map-with-data {:spend {:avg [1000 2000 2000 nil]}}) => {:spend-avg ["avg3" "avg4"]})
+
+       (fact "city tags"
+             (let [fake-items [{:id "001" :name "city1"} {:id "002" :name "city2"}]]
+               (group-tag-map-with-data {:basicInfo {:districts fake-items}}) => {:districts ["001" "002"]}))
+
+       (fact "behavior brand tags"
+             (let [fake-items [{:id "001" :name "city1"} {:id "002" :name "city2"}]]
+               (group-tag-map-with-data {:behavior {:brands fake-items}}) => {:behavior-brands ["001" "002"]}))
+
+       (fact "prefer product tags"
+             (let [fake-items [{:id "001" :name "city1"} {:id "002" :name "city2"}]]
+               (group-tag-map-with-data {:prefer {:products fake-items}}) => {:prefer-products ["001" "002"]}))
+
+
+       (fact "age and tags"
+             (group-tag-map-with-data {:basicInfo {:age [0 17]}
+                                       :tags      ["003" "004"]}) => {:ages ["age1"]
+                                                                      :tags ["003" "004"]})
+       )

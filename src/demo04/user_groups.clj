@@ -66,7 +66,7 @@
 
 (defn numbers-to-tags [arr items]
   (let [strs (parse-number-array arr)]
-    (map first (filter (fn [[t n]]
+    (mapv first (filter (fn [[t n]]
                          (some (partial clojure.string/includes? n) strs)) items))))
 
 (defn- sex-to-tag [s]
@@ -77,12 +77,39 @@
 (defn- items-tags [items]
   (map :id items))
 
-(defn group-to-tags [m & {:keys [data-age data-avg data-total]}]
+
+(defn key-tags [m data-age data-avg data-total]
   (let [sex (sex-to-tag (get-in m [:basicInfo :sex]))
         ages (numbers-to-tags (get-in m [:basicInfo :age]) data-age)
         districts (items-tags (get-in m [:basicInfo :districts]))
+        behavior-brands (items-tags (get-in m [:behavior :brands]))
+        behavior-products (items-tags (get-in m [:behavior:products]))
         prefer-brands (items-tags (get-in m [:prefer :brands]))
         prefer-products (items-tags (get-in m [:prefer :products]))
         spend-avg (numbers-to-tags (get-in m [:spend :avg]) data-avg)
         spend-total (numbers-to-tags (get-in m [:spend :total]) data-total)]
-    (remove nil? (remove empty? [sex ages districts prefer-brands prefer-products spend-avg spend-total (:tags m)]))))
+    {:sex               sex
+     :ages              ages
+     :districts         districts
+     :behavior-brands   behavior-brands
+     :behavior-products behavior-products
+     :prefer-brands     prefer-brands
+     :prefer-products   prefer-products
+     :spend-avg         spend-avg
+     :spend-total       spend-total
+     :tags              (:tags m)}))
+
+(defn group-tag-tiny [m data-age data-avg data-total]
+  (into {}
+          (remove
+            (fn [[_ v]] (or (nil? v) (empty? v)))
+            (key-tags m data-age data-avg data-total)
+            )))
+
+
+(defn group-to-tags [m & {:keys [data-age data-avg data-total]}]
+  (->> (key-tags m data-age data-avg data-total)
+       (vals)
+       (remove empty?)
+       (remove nil?)
+       ))

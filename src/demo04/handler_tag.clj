@@ -1,6 +1,6 @@
 (ns demo04.handler-tag
   (:refer-clojure :exclude [sort find any?])
-  (:use [demo04.user-groups :only (check-group group-to-tags)])
+  (:use [demo04.user-groups :only (check-group group-tag-map)])
   (:require clojure.set
             clojure.string
             monger.joda-time
@@ -252,17 +252,25 @@
   (map (fn [{:keys [_id name]}]
          [(str _id) name]) (filter #(= attr (:category %)) tags)))
 
-(defn mongo-matchs [m all-tags]
-  (let [data-age (filter-tags "age" all-tags)
-        data-avg (filter-tags "avg" all-tags)
-        data-total (filter-tags "total" all-tags)]
-    (mapv convert-to-match (group-to-tags m :data-age data-age :data-avg data-avg :data-total data-total))))
+(defn build-group-tags [m preset-tags]
+  (let [data-age (filter-tags "age" preset-tags)
+        data-avg (filter-tags "avg" preset-tags)
+        data-total (filter-tags "total" preset-tags)]
+    (group-tag-map m :data-age data-age :data-avg data-avg :data-total data-total)))
 
 (defn query-group-count [m]
   (let [all-tags (tags-for-group)
-        matchs (mongo-matchs m all-tags)]
-    (prn matchs)
-    (mc/aggregate @db "user_profile" (conj matchs {op/$count "count"}))))
+        gt (build-group-tags m all-tags)]
+    [
+     (convert-to-match (:sex gt))
+     (convert-to-match (:ages gt))
+     (convert-to-match (:tags gt))
+     (convert-to-match (:spend-avg gt))
+     (convert-to-match (:spend-total gt))
+
+     {"$count" "count"}
+     ]
+    (mc/aggregate @db "user_profile" [{op/$count "count"}])))
 
 (defn handel-group-count [request]
   (let [m (:body request)
