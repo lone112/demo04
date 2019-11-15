@@ -54,6 +54,10 @@
   (let [v (compose-sets p basic behavior prefer spend)]
     (v m)))
 
+(defn check-group [m]
+  (let [result (check-data m)]
+    (if (empty? result) nil result)))
+
 (defn parse-number-array [arr]
   (let [nums (filter number? arr)
         strs (mapv str (sort nums))

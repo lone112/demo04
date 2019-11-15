@@ -12,13 +12,11 @@
             [clj-time.core :as t])
   (:import (org.joda.time DateTime)))
 
-(def data-age [
-               ["5dcbbada19cd444abd6a2c82" 50 nil]
+(def data-age [["5dcbbada19cd444abd6a2c82" 50 nil]
                ["5dcbbada19cd444abd6a2c80" 41 49]
                ["5dcbbada19cd444abd6a2c7f" 24 30]
                ["5dcbbada19cd444abd6a2c7e" 18 23]
-               ["5dcbbada19cd444abd6a2c7d" 0 17]
-               ])
+               ["5dcbbada19cd444abd6a2c7d" 0 17]])
 
 (defn tag-age [m]
   (let [get-tag (fn [n] (some (fn [[t s e]]
@@ -27,12 +25,8 @@
                                   (when (<= s n) t))) data-age))]
     (cond
       (:age m) (get-tag (:age m))
-      (and
-        (:birthday m)
-        (instance? DateTime (:birthday m))) (get-tag (- (t/year (t/now)) (t/year (:birthday m))))
-
-      )))
-
+      (and (:birthday m)
+           (instance? DateTime (:birthday m))) (get-tag (- (t/year (t/now)) (t/year (:birthday m)))))))
 
 (defn load-cities []
   (let [conn (mg/connect-with-credentials "10.126.21.136" (mcred/create "reader" "demo04" "!!123abc"))
@@ -65,10 +59,8 @@
 
 (defn string-match? [s b]
   (if (< 1 (count b))
-    (or
-      (string/includes? s b)
-      (string/includes? s (subs b 0 (- (count b) 1)))
-      )))
+    (or (string/includes? s b)
+        (string/includes? s (subs b 0 (- (count b) 1))))))
 
 (defn find-street
   "find first street name in address"
@@ -99,7 +91,6 @@
         tags (remove nil? (conj (map first addr) age))]
     (if (not-empty tags) {:_id (:_id m) :tags (set (concat tags (:tags m)))})))
 
-
 (defn process-tag []
   (let [street (load-streets)
         cities (load-cities)
@@ -108,9 +99,7 @@
       (doseq [it (pmap (partial analysis cities street) u)]
         (.write wr (format "{\"_id\" : ObjectId(\"%s\"),\"tags\":[\"" (str (:_id it))))
         (.write wr (string/join "\",\"" (:tags it)))
-        (.write wr "\"]}\n")
-        ))))
-
+        (.write wr "\"]}\n")))))
 
 (defn cant-analysis [users data-city data-street]
   (map :addr (remove (partial analysis data-city data-street) users)))

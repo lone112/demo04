@@ -1,6 +1,6 @@
 (ns demo04.handler-tag
   (:refer-clojure :exclude [sort find any?])
-  (:use [demo04.user-groups :only (check-data group-to-tags)])
+  (:use [demo04.user-groups :only (check-group group-to-tags)])
   (:require clojure.set
             clojure.string
             monger.joda-time
@@ -35,6 +35,12 @@
   (mg/get-db (init-conn) name))
 
 (defonce ^:private db (delay (get-database DB_NAME)))
+
+(defn- try-parse-oid [s]
+  (try
+    (ObjectId. s)
+    (catch Exception _
+      nil)))
 
 (defn- map-object-id-string [m]
   (into {} (for [[k v] m]
@@ -107,24 +113,29 @@
 
 (defn all-group [request]
   (let [coll "groups"]
-    (response (map map-object-id-string (mc/find @db coll)))))
+    (response (map (fn [m]
+                     (assoc (clojure.set/rename-keys m {:_id :id}) :count (rand-int 1000))) (mc/find-maps @db coll)))))
+
+(defn get-group-by-id [id]
+  (if-let [oid (try-parse-oid id)]
+    (response (clojure.set/rename-keys (mc/find-map-by-id @db "groups" oid) {:_id :id}))))
 
 (defn new-group [request]
-  (let [coll "groups"
-        m (:body request)
-        error (check-data m)]
+  (let [m (:body request)]
     (try
-      (if (seq? error)
+      (if-let [error (check-group m)]
         (response {:errMsg error})
-        (response (clojure.set/rename-keys (mc/insert-and-return @db coll m) {:_id :id})))
+        (response (clojure.set/rename-keys (mc/insert-and-return @db "groups" m) {:_id :id})))
       (catch DuplicateKeyException e
         (bad-request (.getMessage e))))))
 
-(defn- try-parse-oid [s]
-  (try
-    (ObjectId. s)
-    (catch Exception _
-      nil)))
+(defn update-group [request id]
+  (if-let [oid (try-parse-oid id)]
+    (if-let [error (check-group (:body request))]
+      (response {:errMsg error})
+      (do
+        (mc/update-by-id @db "groups" oid (:body request))
+        (response {:status 200})))))
 
 (defn del-group [request]
   (let [coll "groups"]
@@ -211,21 +222,20 @@
              :displayName "Admin"}))
 
 (defn cities [request]
-  (let [coll "cities"]
-    (response {:districts (mc/aggregate @db "cities" [{op/$project {"cities.areas"        0
-                                                                    "cities.code"         0
-                                                                    "cities.provinceCode" 0
-                                                                    :code                 0}}
-                                                      {op/$project {:_id      0
-                                                                    :id       "$_id"
-                                                                    :province "$name"
-                                                                    :cities   1}}])
-               :brands    (mc/aggregate @db "brands" [{op/$project {:name "$brand"
+  (response {:districts (mc/aggregate @db "cities" [{op/$project {"cities.areas"        0
+                                                                  "cities.code"         0
+                                                                  "cities.provinceCode" 0
+                                                                  :code                 0}}
+                                                    {op/$project {:_id      0
+                                                                  :id       "$_id"
+                                                                  :province "$name"
+                                                                  :cities   1}}])
+             :brands    (mc/aggregate @db "brands" [{op/$project {:name "$brand"
+                                                                  :_id  0
+                                                                  :id   "$_id"}}])
+             :products  (mc/aggregate @db "products" [{op/$project {:name 1
                                                                     :_id  0
-                                                                    :id   "$_id"}}])
-               :products  (mc/aggregate @db "products" [{op/$project {:name 1
-                                                                      :_id  0
-                                                                      :id   "$_id"}}])})))
+                                                                    :id   "$_id"}}])}))
 
 
 (defn- tags-for-group []
@@ -256,8 +266,8 @@
 
 (defn handel-group-count [request]
   (let [m (:body request)
-        errors (check-data m)]
-    (if (seq? errors)
+        ]
+    (if-let [errors (check-group m)]
       (response {:status 400
                  :errMsg errors})
       (response (query-group-count m))

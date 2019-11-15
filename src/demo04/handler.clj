@@ -74,15 +74,18 @@
           (GET "/customer/preferenceinfo" [] tag/user-prefer)
           (GET "/customer/activity" [] tag/user-activity)
           (GET "/profiles/tags" [] tag/all-tag)
-          (POST "/tag" [] tag/new-tag)
-          (PUT "/tag/:id" [] tag/update-tag)
+          (POST "/profiles/tag" [] tag/new-tag)
+          (PUT "/profiles/tag/:id" [] tag/update-tag)
+
           (GET "/profiles/groups" [] tag/all-group)
-          (GET "/profiles/groups/:id" [] tag/all-group)
+          (GET "/profiles/groups/:id" [id] (tag/get-group-by-id id))
           (POST "/profiles/groups" [] tag/new-group)
+          (PUT "/profiles/groups/:id" [id :as req] (tag/update-group req id))
+          (POST "/profiles/groups/count" [] tag/handel-group-count)
           (DELETE "/profiles/groups" [] tag/del-group)
+
           (POST "/users/apply" [] tag/batch-update)
           (GET "/users/query" [] tag/query)
-          (POST "/profiles/groups/count" [] tag/handel-group-count)
           (GET "/options" [] tag/cities)
           (GET "/account/userprofile" [] tag/user-profile)))
 
