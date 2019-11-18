@@ -83,7 +83,7 @@
         ages (numbers-to-tags (get-in m [:basicInfo :age]) data-age)
         districts (items-tags (get-in m [:basicInfo :districts]))
         behavior-brands (items-tags (get-in m [:behavior :brands]))
-        behavior-products (items-tags (get-in m [:behavior:products]))
+        behavior-products (items-tags (get-in m [:behavior :products]))
         prefer-brands (items-tags (get-in m [:prefer :brands]))
         prefer-products (items-tags (get-in m [:prefer :products]))
         spend-avg (numbers-to-tags (get-in m [:spend :avg]) data-avg)

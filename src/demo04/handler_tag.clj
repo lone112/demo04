@@ -1,11 +1,11 @@
 (ns demo04.handler-tag
   (:refer-clojure :exclude [sort find any?])
-  (:use [demo04.user-groups :only (check-group group-tag-map)])
+  (:use [demo04.user-groups :only (check-group group-tag-tiny)])
   (:require clojure.set
             clojure.string
             monger.joda-time
             monger.json
-            cheshire.generate
+            [cheshire.core :as json]
             [clj-time.core :as t]
             [monger.core :as mg]
             [monger.collection :as mc]
@@ -245,7 +245,7 @@
   (cond
     (= 1 (count it)) {op/$match {:tags (first it)}}
     (coll? it) {op/$match {:tags {"$all" it}}}
-    :else {op/$match {:tags it}}
+    (some? it) {op/$match {:tags it}}
     ))
 
 (defn filter-tags [attr tags]
@@ -256,21 +256,33 @@
   (let [data-age (filter-tags "age" preset-tags)
         data-avg (filter-tags "avg" preset-tags)
         data-total (filter-tags "total" preset-tags)]
-    (group-tag-map m :data-age data-age :data-avg data-avg :data-total data-total)))
+    (group-tag-tiny m data-age data-avg data-total)))
+
+(defn lookup [coll p-tags b-tags]
+  (if (or p-tags b-tags)
+    (let [m {"$match" {"lk_tags" {"$not" {"$size" 0}}}}
+          m (if p-tags (assoc-in m ["$match" "lk_tags.products" "$all"] p-tags) m)
+          m (if b-tags (assoc-in m ["$match" "lk_tags.brands" "$all"] b-tags) m)]
+
+      [{"$lookup" {:from         coll
+                   :localField   "amer_id"
+                   :foreignField "_id"
+                   :as           "lk_tags"}}
+       m])))
 
 (defn query-group-count [m]
   (let [all-tags (tags-for-group)
-        gt (build-group-tags m all-tags)]
-    [
-     (convert-to-match (:sex gt))
-     (convert-to-match (:ages gt))
-     (convert-to-match (:tags gt))
-     (convert-to-match (:spend-avg gt))
-     (convert-to-match (:spend-total gt))
-
-     {"$count" "count"}
-     ]
-    (mc/aggregate @db "user_profile" [{op/$count "count"}])))
+        gt (build-group-tags m all-tags)
+        matchs [(convert-to-match (:sex gt))
+                (convert-to-match (:ages gt))
+                (convert-to-match (:tags gt))
+                (convert-to-match (:spend-avg gt))
+                (convert-to-match (:spend-total gt))
+                (lookup "user_tags_1y" (:behavior-products gt) (:behavior-brands gt))
+                {"$count" "count"}]
+        query (flatten (remove nil? matchs))]
+    (prn "group query:" query)
+    (mc/aggregate @db "user_profile" query)))
 
 (defn handel-group-count [request]
   (let [m (:body request)
